@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux Stream - Clean & Sharp</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* Crisp font rendering with zero blur/glow */
+            font-weight: 500;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .terminal-container {
+            width: 98vw;
+            height: 96vh;
+            background-color: #000000;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222222;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #777777;
+            letter-spacing: 1px;
+        }
+
+        .terminal-screen {
+            flex: 1;
+            overflow: hidden;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .stream-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-bottom: 3px;
+        }
+
+        /* Clean contrast levels without blur */
+        .dim {
+            color: #555555;
+        }
+
+        .mid {
+            color: #aaaaaa;
+        }
+
+        .bright {
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <span>termux@miner-node-01:~# ./run_cluster.sh</span>
+            <span>MINING ACTIVE</span>
+        </div>
+        <div class="terminal-screen" id="screen"></div>
+    </div>
+
+    <script>
+        const screen = document.getElementById('screen');
+        const maxLines = 45;
+
+        const codePool = [
+            () => `[MINER] Job received: 0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)} target diff: 0.000041`,
+            () => `[HASH] Calculating nonce #${Math.floor(Math.random() * 90000000 + 10000000)} -> Hash: 00000000${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 10)}`,
+            () => `[GPU] Core Temp: ${Math.floor(Math.random() * 15 + 55)}°C | Fan: 72% | Load: 99.4% | Hashrate: ${Math.floor(Math.random() * 20 + 120)} MH/s`,
+            () => `[SHARE ACCEPTED] Pool stratum.antpool.com accepted block #${Math.floor(Math.random() * 800000 + 700000)} (+0.0042 ETH)`,
+            () => `[KERNEL] Memory block allocated @ 0x${Math.random().toString(16).substring(2, 8)} [OK]`,
+            () => `ROOT_AUTH: Session granted for UID 0 (root) via local socket unix://`,
+            () => `PACKET_CAPTURE: Interface wlan0 promiscuous mode enabled. Captured ${Math.floor(Math.random() * 500 + 50)} bytes.`,
+            () => `DECRYPTING KEY: [====================] 100% - Payload extracted successfully.`,
+            () => `TCP_CONNECT: Handshake acknowledged with node 192.168.1.${Math.floor(Math.random() * 200 + 10)}:443 (Latency: ${Math.floor(Math.random() * 12 + 2)}ms)`,
+            () => `DISK_IO: Writing stream cache to /dev/nvme0n1p2... blocks written: ${Math.floor(Math.random() * 5000 + 1000)}`,
+            () => `SECURITY_DAEMON: Firewall rules verified. Zero intrusion vectors detected.`
+        ];
+
+        function addStreamLine() {
+            const lineGen = codePool[Math.floor(Math.random() * codePool.length)];
+            const text = lineGen();
+
+            const div = document.createElement('div');
+            div.className = 'stream-line';
+            
+            const rand = Math.random();
+            if (rand > 0.7) {
+                div.className += ' bright';
+            } else if (rand > 0.3) {
+                div.className += ' mid';
+            } else {
+                div.className += ' dim';
+            }
+
+            div.textContent = text;
+            screen.appendChild(div);
+
+            if (screen.children.length > maxLines) {
+                screen.removeChild(screen.firstChild);
+            }
+        }
+
+        setInterval(addStreamLine, 45); 
+    </script>
+</body>
+</html>
