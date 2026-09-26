@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux Web - Fast Console</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-weight: 600;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+        }
+
+        /* CRT subtle scanline effect */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 99999;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* Expanded Terminal Container */
+        .terminal-container {
+            width: 96vw;
+            max-width: 1400px;
+            height: 92vh;
+            background-color: #050505;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.08);
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #222222;
+            padding-bottom: 14px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            color: #aaaaaa;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #777;
+            border-radius: 50%;
+        }
+
+        .terminal-screen {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 1rem;
+            line-height: 1.6;
+            word-break: break-all;
+        }
+
+        .terminal-screen::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terminal-screen::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+
+        .line {
+            margin-bottom: 6px;
+        }
+
+        .prompt {
+            color: #ffffff;
+            font-weight: 800;
+        }
+
+        .output {
+            color: #cccccc;
+            white-space: pre-wrap;
+            font-weight: 500;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background-color: #ffffff;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 5px;
+            box-shadow: 0 0 6px #ffffff;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <span>termux@localhost:~ (fullscreen-mode)</span>
+            <div class="dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+        <div class="terminal-screen" id="screen">
+            <div class="line"><span class="prompt">~ $</span> Welcome to Termux Web v1.0.0</div>
+            <div class="line"><span class="prompt">~ $</span> High-speed sequence initiated...</div>
+            <div id="command-output"></div>
+            <div class="line" id="active-line">
+                <span class="prompt" id="current-prompt">~ $</span><span id="typed-text"></span><span class="cursor"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const commands = [
+            { cmd: "pkg update && pkg upgrade -y", out: "Hit:1 https://termux.org/packages stable InRelease\nReading package lists... Done\nCalculating upgrade... Done\n0 upgraded, 0 newly installed, 0 to remove." },
+            { cmd: "neofetch", out: "      \n    \\\\ \\\\      / / /      termux@localhost\n     \\\\ \\\\    / / /       ----------------\n    / / /    / / /        OS: Termux Android\n   / / /    / / /         Kernel: Linux 5.15.0-generic\n  /_/_/    /_/_/          Uptime: 42 mins\n                          Shell: bash 5.1.16" },
+            { cmd: "git clone https://github.com/elite-scripts/matrix-rain.git", out: "Cloning into 'matrix-rain'...\nremote: Enumerating objects: 142, done.\nReceiving objects: 100% (142/142), 45.2 KiB | 2.1 MiB/s, done.\nResolving deltas: 100% (68/68), done." },
+            { cmd: "python3 bypass_firewall.py --target 192.168.1.105", out: "[*] Initializing target handshake...\n[*] Injecting payload into port 443...\n[+] Handshake successful! Access granted." },
+            { cmd: "top -n 1", out: "Tasks: 84 total, 1 running, 83 sleeping\n%CPU:  4.2 usr,  2.1 sys, 93.7 id\nKiB Mem:  4042824 total,  2104112 used,  1938712 free" },
+            { cmd: "nmap -sS -T4 scanme.nmap.org", out: "Starting Nmap scan at " + new Date().toLocaleTimeString() + "\nNmap scan report for scanme.nmap.org (45.33.32.156)\nHost is up (0.078s latency).\nNot shown: 995 closed ports\nPORT   STATE SERVICE\n22/tcp open  ssh\n80/tcp open  http\n443/tcp open https" },
+            { cmd: "rm -rf /node_modules/*", out: "Deleting dependencies... 1420 files removed successfully. Coffee break time." },
+            { cmd: "curl ifconfig.me", out: "192.168.0.42 (Local Secure Proxy)" },
+            { cmd: "cat /etc/passwd", out: "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\ntermux:x:1000:1000:,,,:/home/termux:/bin/bash" },
+            { cmd: "python3 -m http.server 8080", out: "Serving HTTP on 0.0.0.0 port 8080 (http://0.0.0.0:8080/) ..." },
+            { cmd: "ping -c 3 8.8.8.8", out: "PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.\n64 bytes from 8.8.8.8: icmp_seq=1 ttl=117 time=14.2 ms\n64 bytes from 8.8.8.8: icmp_seq=2 ttl=117 time=13.8 ms\n3 packets transmitted, 3 received, 0% packet loss" },
+            { cmd: "apt-get install python3-pip clang make -y", out: "Reading package lists... Done\nBuilding dependency tree...\nReading state information...\nSuggested packages:\n  python3-doc python3-tk python3-venv\nThe following NEW packages will be installed:\n  clang make python3-pip\n0 upgraded, 3 newly installed, 0 to remove." }
+        ];
+
+        const screen = document.getElementById('screen');
+        const outputContainer = document.getElementById('command-output');
+        const typedText = document.getElementById('typed-text');
+        const currentPrompt = document.getElementById('current-prompt');
+
+        function getRandomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function typeCommand(command) {
+            currentPrompt.innerText = "~ $";
+            for (let i = 0; i < command.length; i++) {
+                typedText.textContent += command[i];
+                await sleep(Math.random() * 15 + 5); // Much faster typing speed (5-20ms per character)
+            }
+            await sleep(150); // Shorter pause before output execution
+        }
+
+        async function runSimulator() {
+            while (true) {
+                const choice = getRandomItem(commands);
+                
+                await typeCommand(choice.cmd);
+
+                const executedLine = document.createElement('div');
+                executedLine.className = 'line';
+                executedLine.innerHTML = `<span class="prompt">~ $</span> ${choice.cmd}`;
+                outputContainer.appendChild(executedLine);
+                typedText.textContent = "";
+
+                if (choice.out) {
+                    const outputLine = document.createElement('div');
+                    outputLine.className = 'line output';
+                    outputLine.textContent = choice.out;
+                    outputContainer.appendChild(outputLine);
+                }
+
+                screen.scrollTop = screen.scrollHeight;
+
+                await sleep(Math.random() * 500 + 300); // Fast gap between commands (0.3 to 0.8 seconds)
+            }
+        }
+
+        runSimulator();
+    </script>
+</body>
+</html>
